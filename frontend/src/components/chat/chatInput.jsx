@@ -3,26 +3,29 @@ import React, { useState } from 'react';
 const ChatInput = ({ onSendMessage }) => {
   const [message, setMessage] = useState('');
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (message.trim()) {
-      onSendMessage(message);
-      setMessage('');
-    }
+  const handleSendMessage = () => {
+    if (message.trim() === '') return; // Prevent sending empty messages
+    onSendMessage(message);
+    setMessage('');
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-center mt-4">
+    <div className="flex items-center space-x-3 p-4 bg-gray-100 rounded-md shadow-md">
       <input
         type="text"
+        placeholder="Type your message"
         value={message}
         onChange={(e) => setMessage(e.target.value)}
-        placeholder="Type a message..."
-        className="flex-1 p-2 border rounded"
+        className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
-      <button type="submit" className="btn btn-primary ml-2">Send</button>
-    </form>
+      <button
+        onClick={handleSendMessage}
+        className="px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors"
+      >
+        Send
+      </button>
+    </div>
   );
 };
 
-export default ChatInput;
+export default ChatInput; // Ensure default export is present

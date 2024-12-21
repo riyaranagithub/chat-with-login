@@ -3,6 +3,7 @@ const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes'); // Add this line
 const { Server } = require('socket.io');
 const http = require('http');
 
@@ -23,24 +24,39 @@ const io = new Server(server, {
   },
 });
 
-
 // Middleware
 app.use(express.json());
-app.use(cors());
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes); // Add this line
 
-// Socket.IO
+// Store connected users
+let users = {};
+
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
-  socket.on('sendMessage', (data) => {
-    io.emit('receiveMessage', data);
+  socket.on('registerUser', (user) => {
+    users[user.userId] = { socketId: socket.id, username: user.username };
+  });
+
+  socket.on('sendPrivateMessage', ({ toUsername, message }) => {
+    const recipient = Object.values(users).find(user => user.username === toUsername);
+    if (recipient) {
+      io.to(recipient.socketId).emit('receivePrivateMessage', message);
+    }
   });
 
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
+    // Remove user from the users object
+    for (let userId in users) {
+      if (users[userId].socketId === socket.id) {
+        delete users[userId];
+        break;
+      }
+    }
   });
 });
 
