@@ -12,7 +12,9 @@ const Register = () => {
     e.preventDefault();
     try {
       const { data } = await axios.post('http://localhost:5000/api/auth/register', { username, email, password });
-      localStorage.setItem('userInfo', JSON.stringify(data));
+      sessionStorage.setItem('authToken', data.token); // Storing the token
+sessionStorage.setItem('userData', JSON.stringify(data)); // Storing the whole user data (stringified)
+
       navigate('/chat');
     } catch (error) {
       console.error(error.response.data.message);

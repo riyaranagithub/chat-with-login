@@ -2,21 +2,16 @@ const express = require('express');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes'); // Add this line
 const { Server } = require('socket.io');
 const http = require('http');
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+const connectDB = require('./config/db'); // Centralized MongoDB connection
 
 dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-app.use(cors({
-  origin: process.env.FRONTEND_URL,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true,
-}));
-
 const io = new Server(server, {
   cors: {
     origin: process.env.FRONTEND_URL,
@@ -25,22 +20,30 @@ const io = new Server(server, {
 });
 
 // Middleware
+app.use(cors({
+  origin: process.env.FRONTEND_URL,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true,
+}));
 app.use(express.json());
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes); // Add this line
+app.use('/api/users', userRoutes);
 
-// Store connected users
+// Socket.IO Logic
 let users = {};
 
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
+  // Register user
   socket.on('registerUser', (user) => {
-    users[user.userId] = { socketId: socket.id, username: user.username };
+    users[user.id] = { socketId: socket.id, username: user.username };
+    console.log('Registered users:', users);
   });
 
+  // Send private message
   socket.on('sendPrivateMessage', ({ toUsername, message }) => {
     const recipient = Object.values(users).find(user => user.username === toUsername);
     if (recipient) {
@@ -48,24 +51,22 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Handle disconnect
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
-    // Remove user from the users object
     for (let userId in users) {
       if (users[userId].socketId === socket.id) {
         delete users[userId];
         break;
       }
     }
+    console.log('Updated users after disconnect:', users);
   });
 });
 
-// Database connection
-mongoose
-  .connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log('MongoDB connected'))
-  .catch((err) => console.log(err));
+// Connect to Database
+connectDB();
 
-// Start server
+// Start Server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

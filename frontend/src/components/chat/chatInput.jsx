@@ -28,4 +28,4 @@ const ChatInput = ({ onSendMessage }) => {
   );
 };
 
-export default ChatInput; // Ensure default export is present
+export default ChatInput;
